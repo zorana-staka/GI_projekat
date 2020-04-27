@@ -4,9 +4,8 @@
 '''
 
 class Body_record:
-    body_header_line = None
 
-    def __init__(self, line):
+    def __init__(self, line, file_item):
         self.line = line
         if "\n" not in line:
             self.line = line + "\n"
@@ -19,12 +18,12 @@ class Body_record:
         self.filter = ""
         self.info = ""
         self.samples = {}
+        self.body_header_line = file_item.body_header_line
         self.extract_data_from_line()
 
     def update_line(self):
         self.line = self.chrom + "\t" + self.pos + "\t" + self.id + "\t" + self.ref + "\t" + self.alt + "\t" + self.qual + \
                     "\t" + self.filter + "\t" + self.info
-        
         
         for key, value in self.samples.items():
             self.line += "\t" + value
