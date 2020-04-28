@@ -1,6 +1,6 @@
-'''
+"""
     Represents line in header part of VCF file.
-'''
+"""
 class Generic_header:
     def __init__(self, line):
         self.line = line
