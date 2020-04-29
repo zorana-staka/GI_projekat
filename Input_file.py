@@ -15,12 +15,14 @@ class Input_file:
         self.set_file_type()
         self.version = None
         self.body_header_line = None
-        self.list_of_header_lines = list()
-        self.list_of_body_lines = list()
+        self.list_of_other_header_objects = list()
+        self.list_of_contigs = list()
         self.list_of_header_objects = list()
         self.list_of_body_objects = list()
+        self.list_of_infos = list()
         self.convert = lambda text: int(text) if text.isdigit() else text
         self.alphanum_key = lambda key: [self.convert(c) for c in re.split('([0-9]+)', key)]
+        self.invalid = False
 
     def set_file_type(self):
         if self.path.endswith('vcf.gz') or self.path.endswith('vcf.GZ'):
@@ -46,7 +48,6 @@ class Input_file:
                 self.read_header_in_gz_file()
                 if self.verify_start_of_header():
                     self.read_body_in_gz_file()
-                    self.verify_header_lines
 
         else:
             with open(self.path) as self.file:
@@ -61,19 +62,22 @@ class Input_file:
                 if self.verify_start_of_header():
                     self.read_body_in_file()
 
-        self.create_generic_header_objects()
-        self.create_body_records_objects()
 
     def read_header_in_file(self):
         previous_position_of_file = self.file.tell()
         line_of_file = self.file.readline()
 
         while line_of_file.startswith('##'):
-            self.list_of_header_lines.append(line_of_file)
+            generic_header_object = Generic_header(line_of_file)
+            if generic_header_object.hasID and generic_header_object.tag != 'contig':
+                self.list_of_header_objects.append(generic_header_object)
+            elif not generic_header_object.hasID and generic_header_object.tag != 'contig':
+                self.list_of_other_header_objects.append(generic_header_object)
+            else:
+                self.list_of_contigs.append(generic_header_object)
             previous_position_of_file = self.file.tell()
             line_of_file = self.file.readline()
 
-        self.list_of_header_lines.append(line_of_file)
         self.file.seek(previous_position_of_file)
 
     """
@@ -86,12 +90,14 @@ class Input_file:
     def read_header_in_gz_file(self):
         previous_position_of_file = self.file.tell()
         line_of_file = str(self.file.readline(), 'utf-8')
-
         while line_of_file.startswith('##'):
-            self.list_of_header_lines.append(line_of_file)
+            generic_header_object = Generic_header(line_of_file)
+            if generic_header_object.hasID:
+                self.list_of_header_objects.append(generic_header_object)
+            else:
+                self.list_of_other_header_objects.append(generic_header_object)
             previous_position_of_file = self.file.tell()
             line_of_file = str(self.file.readline(), 'utf-8')
-        self.list_of_header_lines.append(line_of_file)
 
         self.file.seek(previous_position_of_file)
 
@@ -103,7 +109,8 @@ class Input_file:
 
     def read_body_in_file(self):
         for line in self.file:
-            self.list_of_body_lines.append(line)
+            body_record_object = Body_record(line, self.body_header_line)
+            self.list_of_body_objects.append(body_record_object)
 
     """
         Read all body lines in all compressed files. 
@@ -114,28 +121,8 @@ class Input_file:
 
     def read_body_in_gz_file(self):
         for line in self.file:
-            self.list_of_body_lines.append(str(line, 'utf-8'))
-
-    """
-        
-    """
-
-    def create_generic_header_objects(self):
-        for list_item in self.list_of_header_lines:
-            generic_header_object = Generic_header(list_item)
-            self.list_of_header_objects.append(generic_header_object)
-
-    """
-        Verify that there is no collision between records itself and other record with same chrom and pos.
-        Will be more developed and more comprehensive, after testing all possible cases.
-
-    """
-
-    def create_body_records_objects(self):
-        for list_item in self.list_of_body_lines:
-            body_record_object = Body_record(list_item, self.body_header_line)
+            body_record_object = Body_record(str(line, 'utf-8'), self.body_header_line)
             self.list_of_body_objects.append(body_record_object)
-
 
     def verify_start_of_header(self):
 
@@ -149,3 +136,12 @@ class Input_file:
             return False
 
         return True
+
+    def verify_body_objects(self):
+        index = 0
+        while index < len(self.list_of_body_objects):
+
+            # same referent and alternate base on the same mutation - then it is not a mutation
+            if self.list_of_body_objects[index].ref == self.list_of_body_objects[index].alt:
+                self.invalid = True
+                print("Error")
