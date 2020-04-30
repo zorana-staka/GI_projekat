@@ -5,6 +5,7 @@
 
 
 class Body_record:
+    print_data = True
 
     def __init__(self, line, body_header_line):
         self.line = line
@@ -18,18 +19,21 @@ class Body_record:
         self.qual = ""
         self.filter = ""
         self.info = ""
-        self.info_fields = None
         self.samples = {}
+        self.data_from_info = {}
         self.body_header_line = body_header_line
         self.extract_data_from_line()
-        #self.extract_data_from_info()
+        self.extract_data_from_info()
 
     def update_line(self):
-        self.line = self.chrom + "\t" + str(self.pos) + "\t" + self.id + "\t" + self.ref + "\t" + self.alt + "\t" + self.qual + \
-                    "\t" + self.filter + "\t" + self.info
+        self.line = self.chrom + "\t" + str(
+            self.pos) + "\t" + self.id + "\t" + self.ref + "\t" + self.alt + "\t" + self.qual + \
+                    "\t" + str(self.filter) + "\t" + str(self.info)
 
         for key, value in self.samples.items():
             self.line += "\t" + value
+
+        self.line += "\n"
 
     def extract_data_from_line(self):
         splitted_line = self.line.split("\t")
@@ -48,8 +52,30 @@ class Body_record:
             self.samples[sample] = splitted_line[index].replace('\n', '')
 
     def extract_data_from_info(self):
-        # TODO izvući vrijednosti za određene dijelove u INFO polju
-        pass
+        attributes = self.info.split(';')
+
+        for item in attributes:
+            if item.count('=') == 1:
+                splitted = item.split('=')
+                self.data_from_info[splitted[0]] = splitted[1]
+                splitted.clear()
+            else:
+                self.data_from_info[item] = True
+
+        self.data_from_info = dict(sorted(self.data_from_info.items()))
+        self.update_info_field()
+        self.update_line()
+
+    def update_info_field(self):
+        self.info = ""
+        for key, value in self.data_from_info.items():
+            if value != '':
+                if str(value) == "True" or str(value) == "False":
+                    self.info += key + ";"
+                else:
+                    self.info += key + "=" + str(value) + ";"
+
+        self.info = self.info[:-1]
 
     def __eq__(self, other):
         return self.line == other.line

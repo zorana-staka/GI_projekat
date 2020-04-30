@@ -71,6 +71,8 @@ class Input_file:
             generic_header_object = Generic_header(line_of_file)
             if generic_header_object.hasID and generic_header_object.tag != 'contig':
                 self.list_of_header_objects.append(generic_header_object)
+                if generic_header_object.tag == 'INFO':
+                    self.list_of_infos.append(generic_header_object) 
             elif not generic_header_object.hasID and generic_header_object.tag != 'contig':
                 self.list_of_other_header_objects.append(generic_header_object)
             else:
@@ -92,10 +94,14 @@ class Input_file:
         line_of_file = str(self.file.readline(), 'utf-8')
         while line_of_file.startswith('##'):
             generic_header_object = Generic_header(line_of_file)
-            if generic_header_object.hasID:
+            if generic_header_object.hasID and generic_header_object.tag != 'contig':
                 self.list_of_header_objects.append(generic_header_object)
-            else:
+                if generic_header_object.tag == 'INFO':
+                    self.list_of_infos.append(generic_header_object)
+            elif not generic_header_object.hasID and generic_header_object.tag != 'contig':
                 self.list_of_other_header_objects.append(generic_header_object)
+            else:
+                self.list_of_contigs.append(generic_header_object)
             previous_position_of_file = self.file.tell()
             line_of_file = str(self.file.readline(), 'utf-8')
 

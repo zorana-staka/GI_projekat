@@ -25,6 +25,7 @@ class Generic_header:
                     self.hasID = True
         except:
             pass
+
     def get_tag(self):
         line_parse = self.line.split('=',1)[0]
         self.tag = line_parse[2:]
