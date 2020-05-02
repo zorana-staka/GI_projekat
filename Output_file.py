@@ -3,6 +3,8 @@ import re
 
 import toolz
 
+from Body_record import Body_record
+from Body_header_line import Body_header_line
 from Input_file import Input_file
 
 """
@@ -25,8 +27,10 @@ class Output_file:
         self.list_of_infos = list()
         self.list_of_input_files_paths = list()
         self.list_of_input_files = list()
+        self.list_of_samples_to_be_combined = list()
         self.arguments = arguments
         self.extract_info_from_arguments()
+        self.error_message = ""
         self.convert = lambda text: int(text) if text.isdigit() else text
         self.alphanum_key = lambda key: [self.convert(c) for c in re.split('([0-9]+)', key)]
 
@@ -36,25 +40,28 @@ class Output_file:
 
     def extract_info_from_arguments(self):
 
+        for sample_name in self.arguments['--sample_name']:
+            self.list_of_samples_to_be_combined.append(sample_name)
+
         for file_path in self.arguments['--input_file']:
-            file_object = Input_file(file_path)
+            file_object = Input_file(file_path, self.list_of_samples_to_be_combined)
             self.list_of_input_files.append(file_object)
             self.list_of_input_files_paths.append(file_path)
 
         if self.arguments['--out']:
 
             if self.arguments['--output_format'] == 'COMPRESSED':
-                self.file = gzip.open(self.arguments['--out'] + '.gz', "r+b")
+                self.file = gzip.open(self.arguments['--out'] + '.gz', "w+b")
                 self.compressed = True
             elif self.arguments['--output_format'] == 'UNCOMPRESSED':
-                self.file = open(self.arguments['--out'], "r+")
+                self.file = open(self.arguments['--out'], "w+")
                 self.compressed = False
             else:
                 if self.list_of_input_files[0].compressed:
-                    self.file = gzip.open(self.arguments['--out'] + '.gz', "r+b")
+                    self.file = gzip.open(self.arguments['--out'] + '.gz', "w+b")
                     self.compressed = True
                 else:
-                    self.file = open(self.arguments['--out'], "r+")
+                    self.file = open(self.arguments['--out'], "w+")
 
     """
         This method reads all of the input files by calling method open_and_read_file of Input_file class. 
@@ -64,6 +71,7 @@ class Output_file:
         Arrange methods are used to sort header and body part. 
         Verify methods are used to check if rules for VCF files are respected.  
     """
+
     def read_input_files(self):
         for input_file in self.list_of_input_files:
             input_file.open_and_read_file()
@@ -72,13 +80,11 @@ class Output_file:
             self.list_of_other_header_objects.extend(input_file.list_of_other_header_objects)
             self.list_of_contigs.extend(input_file.list_of_contigs)
             self.list_of_infos.extend(input_file.list_of_infos)
+
             self.list_of_body_objects.extend(input_file.list_of_body_objects)
 
         self.filter_header_objects()
         self.filter_body_objects()
-
-        for body_record in self.list_of_body_objects:
-            body_record.extract_data_from_info()
 
         self.list_of_header_objects.extend(self.list_of_other_header_objects)
         self.arrange_header()
@@ -87,16 +93,18 @@ class Output_file:
         self.arrange_body()
 
         self.verify_header()
-        self.verify_body()
-
+        if self.verify_body():
+            pass
+        else:
+            self.error_message = "Body is not valid"
+            return False
+        return True
 
     def filter_header_objects(self):
-        self.list_of_header_objects = list(toolz.unique(self.list_of_header_objects, key=lambda x: x.tag_and_ID))
         self.list_of_header_objects = list(toolz.unique(self.list_of_header_objects, key=lambda x: x.tag_and_ID))
         self.list_of_other_header_objects = list(toolz.unique(self.list_of_other_header_objects, key=lambda x: x.line))
         self.list_of_contigs = list(toolz.unique(self.list_of_contigs, key=lambda x: x.line))
         self.list_of_infos = list(toolz.unique(self.list_of_infos, key=lambda x: x.line))
-
 
     def filter_body_objects(self):
         self.list_of_body_objects = list(toolz.unique(self.list_of_body_objects, key=lambda x: x.line))
@@ -112,6 +120,7 @@ class Output_file:
         self.list_of_body_objects.sort(key=lambda x: self.alphanum_key(x.line))
 
     def write_output_file(self):
+
         if self.compressed:
             self.write_header_in_gz_file()
             self.write_body_in_gz_file()
@@ -123,9 +132,11 @@ class Output_file:
         if self.arguments['--out']:
             for list_item in self.list_of_header_objects:
                 self.file.write(list_item.line)
+            self.file.write(self.body_header_line.line)
         else:
             for list_item in self.list_of_header_objects:
                 print(list_item.line)
+            print(self.self.body_header_line.line)
 
     def write_body(self):
         if self.arguments['--out']:
@@ -155,16 +166,48 @@ class Output_file:
         pass
 
     def verify_body(self):
+        if len(self.list_of_samples_to_be_combined) == 0:
+            self.determinate_samples_to_be_combined()
+        Body_header_line.list_of_samples_to_be_combined = self.list_of_samples_to_be_combined
+        Body_record.list_of_samples_to_be_combined = self.list_of_samples_to_be_combined
+        for body_object in self.list_of_body_objects:
+            body_object.update_line()
+
+        if self.check_samples_in_all_input_files():
+            self.body_header_line = Body_header_line("")
+            self.body_header_line.has_format_field = True
+            self.body_header_line.samples_names = Body_header_line.list_of_samples_to_be_combined
+            self.body_header_line.update_line()
+
+            return self.merge_body_records()
+
+        return False
+
+    def check_samples_in_all_input_files(self):
+        if sum(input_file.invalid is True for input_file in self.list_of_input_files) > 0:
+            return False
+
+        for input_file in self.list_of_input_files:
+            if not set(self.list_of_samples_to_be_combined).issubset(set(input_file.body_header_line.samples_names)):
+                return False
+
+        return True
+
+    def determinate_samples_to_be_combined(self):
+        for input_file in self.list_of_input_files:
+            for sample_name in input_file.body_header_line.samples_names:
+                if sample_name not in self.list_of_samples_to_be_combined:
+                    self.list_of_samples_to_be_combined.append(sample_name)
+        self.list_of_samples_to_be_combined = list(set(self.list_of_samples_to_be_combined))
+
+    def merge_body_records(self):
         index = 0
         while index < len(self.list_of_body_objects):
 
             if index + 1 < len(self.list_of_body_objects):
-                # same pos and chromosome
                 if (self.list_of_body_objects[index].pos == self.list_of_body_objects[index + 1].pos and
                         self.list_of_body_objects[index].chrom == self.list_of_body_objects[index + 1].chrom):
 
-                    print("DUPLICATE: " + self.list_of_body_objects[index].chrom + ", " +self.list_of_body_objects[index].pos)
-                    # samo u ovom slučaju možemo ići na spajanje dvije linije, inače ne
                     if self.list_of_body_objects[index].ref == self.list_of_body_objects[index + 1].ref:
 
                         if self.list_of_body_objects[index].filter == self.list_of_body_objects[index + 1].filter:
@@ -178,7 +221,7 @@ class Output_file:
                                 self.list_of_body_objects[index].qual, self.list_of_body_objects[index + 1].qual)
 
                             self.list_of_body_objects[index].info = self.determinate_info(
-                                self.list_of_body_objects[index].info, self.list_of_body_objects[index + 1].info)
+                                self.list_of_body_objects[index], self.list_of_body_objects[index + 1])
 
                             self.list_of_body_objects[index].update_line()
 
@@ -198,7 +241,7 @@ class Output_file:
                                 self.list_of_body_objects[index].qual, self.list_of_body_objects[index + 1].qual)
 
                             self.list_of_body_objects[index].info = self.determinate_info(
-                                self.list_of_body_objects[index].info, self.list_of_body_objects[index + 1].info)
+                                self.list_of_body_objects[index], self.list_of_body_objects[index + 1])
 
                             self.list_of_body_objects[index].update_line()
 
@@ -219,9 +262,19 @@ class Output_file:
     def determinate_id_alt_qual_info(self, record_one, record_two):
         pass
 
-    def determinate_info(self, data_from_info_one, data_from_info_two):
-        # return dict(data_from_info_one.items() & data_from_info_two.items())
-        pass
+    def determinate_info(self, record_one, record_two):
+        info_data = {}
+        for key, value in record_one.data_from_info.items():
+            if key in record_two.data_from_info:
+                if value == record_two.data_from_info[key]:
+                    info_data[key] = value
+
+        for key, value in record_two.data_from_info.items():
+            if key not in record_one.data_from_info:
+                info_data[key] = value
+
+        record_one.data_from_info = info_data
+        record_one.update_info_field
 
     def determinate_id(self, id_one, id_two):
         if id_one == id_two:

@@ -8,7 +8,7 @@ from Generic_header import Generic_header
 
 class Input_file:
 
-    def __init__(self, path):
+    def __init__(self, path, list_of_samples_to_be_combined):
         self.path = path
         self.file = None
         self.compressed = False
@@ -20,6 +20,7 @@ class Input_file:
         self.list_of_header_objects = list()
         self.list_of_body_objects = list()
         self.list_of_infos = list()
+        self.list_of_samples_to_be_combined = list_of_samples_to_be_combined
         self.convert = lambda text: int(text) if text.isdigit() else text
         self.alphanum_key = lambda key: [self.convert(c) for c in re.split('([0-9]+)', key)]
         self.invalid = False
@@ -32,11 +33,7 @@ class Input_file:
         else:
             self.compressed = None
 
-    def set_body_header_line(self, body_header_line):
-        self.body_header_line = body_header_line
-
     def open_and_read_file(self):
-
         if self.compressed:
             with gzip.open(self.path) as self.file:
                 previous_position_of_file = self.file.tell()
@@ -62,6 +59,7 @@ class Input_file:
                 if self.verify_start_of_header():
                     self.read_body_in_file()
 
+        self.verify_body_objects()
 
     def read_header_in_file(self):
         previous_position_of_file = self.file.tell()
@@ -72,7 +70,7 @@ class Input_file:
             if generic_header_object.hasID and generic_header_object.tag != 'contig':
                 self.list_of_header_objects.append(generic_header_object)
                 if generic_header_object.tag == 'INFO':
-                    self.list_of_infos.append(generic_header_object) 
+                    self.list_of_infos.append(generic_header_object)
             elif not generic_header_object.hasID and generic_header_object.tag != 'contig':
                 self.list_of_other_header_objects.append(generic_header_object)
             else:
@@ -136,18 +134,30 @@ class Input_file:
             next_line = str(self.file.readline(), 'utf-8')
         else:
             next_line = self.file.readline()
+
         if next_line.startswith("#CHROM"):
-            self.set_body_header_line(Body_header_line(next_line))
+            self.body_header_line = Body_header_line(next_line)
+            if self.body_header_line.invalid:
+                self.invalid = True
+                return False
         else:
+            self.invalid = True
             return False
 
+        return self.check_if_header_body_line_contains_samples()
+
+    def check_if_header_body_line_contains_samples(self):
+        for sample_name in self.list_of_samples_to_be_combined:
+            if sample_name not in self.body_header_line.line:
+                self.invalid = True
+                print("NEVALIDAN")
+                return False
         return True
 
     def verify_body_objects(self):
         index = 0
         while index < len(self.list_of_body_objects):
-
-            # same referent and alternate base on the same mutation - then it is not a mutation
             if self.list_of_body_objects[index].ref == self.list_of_body_objects[index].alt:
                 self.invalid = True
                 print("Error")
+            index += 1
