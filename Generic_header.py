@@ -1,45 +1,38 @@
-"""
-    Represents line in header part of VCF file.
-"""
 class Generic_header:
-
+    """ Represents line in header of VCF file.
+        Contains all relevant information about line and methods for manipulation.
+    """
     def __init__(self, line):
         self.line = line
         self.tag = ""
-        self.ID = ""
-        self.hasID = False
+        self.ID = None
+        self.tag_and_ID = ""
         self.data = {}
         self.extract_line_data()
-        self.getID()
-        self.get_tag()
 
     def extract_line_data(self):
-
+        """ If possible divides line into two parts at the place of = (equal sign).
+            Sets ID and tag name.
+        """
         try:
-            line_parse = self.line.split('=',1)[1]
-            attributes = line_parse.split(',')
+            line_parse = self.line.split('=', 1)
+            self.tag = (line_parse[0])[2:]
+            attributes = line_parse[1].split(',')
             for item in attributes:
                 if item.count('=') >= 1:
                     splitted = item.split('=', 1)
                     self.data[splitted[0].lstrip('<,"')] = splitted[1].rstrip('>')
-                    self.hasID = True
-        except:
+
+            if 'ID' in self.data:
+                self.ID = self.data['ID']
+                self.tag_and_ID = f'{self.tag}_{self.ID}'
+
+        finally:
             pass
 
-    def get_tag(self):
-        line_parse = self.line.split('=',1)[0]
-        self.tag = line_parse[2:]
-        self.tag_and_ID = self.tag + "_" + self.ID
-
-    def getID(self):
-        line_parse = self.line.split('=',1)[1]
-        attributes = line_parse.split(',')
-        if attributes[0].count('=') >= 1:
-            splitted = attributes[0].split('=', 1)
-            self.ID = splitted[1].rstrip('>')
-
     def __eq__(self, other):
+        """ Overridden equal operator. Compering is done by line attribute.
+            :param other: other Generic_header to be compared with.
+        """
         return self.line == other.line
 
-    def get_line(self):
-        return self.line

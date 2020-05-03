@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 """
-SmartCombineVariants (SCV) v1.0 by Zorana Štaka and Darko Pjević
+SmartCombineVariants (SCV) v1.0 made with Python by Zorana Štaka and Darko Pjević
+This tools performs combining of two or more vcf files into one according to the perspective rules.
 Copyright (c) ETF Beograd
 
 Usage: Merge_VCF_merge_9.py (-i <inputVCF.vcf>)... [-s <sample_name>]... [-f <output_format>] [-o <out>]
@@ -27,6 +25,7 @@ Options:
 import time
 from docopt import docopt
 from Output_file import Output_file
+import profile
 
 start_time = time.time()
 output_file = None
