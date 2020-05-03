@@ -13,12 +13,14 @@ class Input_file:
         Both, uncompressed (.vcf) and compressed (.vcf.gz) input files are supported.
     """
 
-    def __init__(self, path, list_of_samples_to_be_combined, path_to_idx):
+    def __init__(self, path, list_of_samples_to_be_combined):
         """ Create and initialize a input_file.
         :param path: path to the file
         :param list_of_samples_to_be_combined: samples that are of interest, ie. samples that need to be combined
         """
         self.path = path
+        self.path_to_idx = f'{path}.idx'
+        self.indices = {}
         self.file = None
         self.compressed = self.path.endswith('vcf.gz') or self.path.endswith('vcf.GZ')
         self.version = None
@@ -31,11 +33,23 @@ class Input_file:
         self.convert = lambda text: int(text) if text.isdigit() else text
         self.alphanum_key = lambda key: [self.convert(c) for c in re.split('([0-9]+)', key)]
         self.invalid = False
+        self.extract_indices()
+
+    def extract_indices(self):
+        with open(self.path_to_idx) as idx_file:
+            list_of_lines = idx_file.readlines()
+            idx_file.close()
+
+        if len(list_of_lines) > 0:
+            if list_of_lines[0] == "Positions of Chroms: \n":
+                list_of_lines = list_of_lines[1:]
+                for list_item in list_of_lines:
+                    attributes = list_item.rstrip(';\n').split(':')
+                    self.indices[attributes[0]] = attributes[1].replace(' ', '')
+
 
     def open_and_read_file(self):
-        """ Opens and reads a file regarding type of the file (compressed or uncompressed).
-
-        """
+        """ Opens and reads a file regarding type of the file (compressed or uncompressed). """
         if self.compressed:
             with gzip.open(self.path) as self.file:
                 previous_position_of_file = self.file.tell()
