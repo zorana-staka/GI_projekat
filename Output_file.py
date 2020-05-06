@@ -15,7 +15,7 @@ class Output_file:
         self.path = ""
         self.file = None
         self.compressed = None
-        self.version = '##fileformat=VCFv4.2\n'
+        self.version = None
         self.indices = {}
         self.body_header_line = None
         self.list_of_header_objects = list()
@@ -92,6 +92,7 @@ class Output_file:
             self.list_of_header_objects.extend(input_file.list_of_header_objects)
             self.list_of_header_objects_without_ID.extend(input_file.list_of_header_objects_without_ID)
             self.list_of_contigs.extend(input_file.list_of_contigs)
+        self.version = self.list_of_input_files[0].version
 
     def process_headers(self):
         """ Delete duplicates and sort all lists regarding header. Creates body header line according to the
