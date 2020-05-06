@@ -30,7 +30,7 @@ class Input_file:
         self.list_of_header_objects_without_ID = list()
         self.list_of_contigs = list()
         self.list_of_header_objects = list()
-        self.list_of_body_objects = list()
+        self.list_of_body_records_chrom = list()
         self.list_of_samples_to_be_combined = list_of_samples_to_be_combined
         self.convert = lambda text: int(text) if text.isdigit() else text
         self.alphanum_key = lambda key: [self.convert(c) for c in re.split('([0-9]+)', key)]
@@ -130,9 +130,9 @@ class Input_file:
 
     def read_specific_chrom_body_of_file(self, chrom):
         """ Reads all body lines in compressed or uncompressed file and creates appropriate Body_record object.
-            Object is placed in the list list_of_body_objects.
+            Object is placed in the list list_of_body_records_chrom.
         """
-        self.list_of_body_objects = []
+        self.list_of_body_records_chrom = []
         try:
             if chrom in self.indices.keys():
                 if self.compressed:
@@ -140,7 +140,7 @@ class Input_file:
                         self.file.seek(int(self.indices[chrom]))
                         for line in self.file:
                             if line.startswith(f'{chrom}\t'):
-                                self.list_of_body_objects.append(Body_record(str(line, 'utf-8'), self.body_header_line))
+                                self.list_of_body_records_chrom.append(Body_record(str(line, 'utf-8'), self.body_header_line))
                             else:
                                 break
                     self.verify_body_records()
@@ -149,7 +149,7 @@ class Input_file:
                         self.file.seek(int(self.indices[chrom]))
                         for line in self.file:
                             if line.startswith(f'{chrom}\t'):
-                                self.list_of_body_objects.append(Body_record(line, self.body_header_line))
+                                self.list_of_body_records_chrom.append(Body_record(line, self.body_header_line))
                             else:
                                 break
                     self.verify_body_records()
@@ -179,6 +179,6 @@ class Input_file:
     def verify_body_records(self):
         """ Verifies if all body records have different ref and alt field. If there is record that has same
             ref and alt field the file is invalid and appropriate error message is set. """
-        if sum(body_record.ref == body_record.alt for body_record in self.list_of_body_objects) > 0:
+        if sum(body_record.ref == body_record.alt for body_record in self.list_of_body_records_chrom) > 0:
             self.invalid = True
             self.error_message = f'At least of of the records have same REF and ALT field.'

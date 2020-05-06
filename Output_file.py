@@ -111,9 +111,9 @@ class Output_file:
     def check_if_input_file_invalid(self):
         """ Checkes wheater the input files are all valid. If there is at least one invalid file the error message
             is set according to the input file that is invalid. """
-        self.error_message = (
-        [input_file for input_file in self.list_of_input_files if input_file['invalid'] is True][0]).error_message
-        if self.error_message is not None:
+        error_files = [input_file for input_file in self.list_of_input_files if input_file.invalid is True]
+        if len(error_files) > 0:
+            self.error_message = error_files[0].error_message
             self.invalid = True
         self.invalid = False
 
