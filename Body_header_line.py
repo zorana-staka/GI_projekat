@@ -10,7 +10,7 @@ class Body_header_line:
         self.line = line
         self.has_format_field = False
         self.samples_names = []
-        self.invalid = True
+        self.invalid = None
         self.error_message = None
         if line != "":
             self.extract_sample_names()

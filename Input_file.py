@@ -54,7 +54,8 @@ class Input_file:
             self.extract_indices()
 
     def extract_indices(self):
-        """ Reads an appropriate file containing information about indices and stores that information in dictionary indices. """
+        """ Reads an appropriate file containing information about indices and stores that
+            information in dictionary indices. """
         with open(self.path_to_idx) as idx_file:
             list_of_lines = idx_file.readlines()
 
@@ -74,13 +75,14 @@ class Input_file:
                     self.version = line_of_file
                 else:
                     self.invalid = True
-                    self.error_message = f'There is no first mandatory header line in file expressing version of file in file: {self.path}'
+                    self.error_message = f'There is no first mandatory header line in file expressing ' \
+                                         f'version of file in file: {self.path}'
+                    return
                 self.read_header_in_gz_file()
-                if self.verify_start_of_header_for_body():
-                    return True
-                else:
-                    self.invalid = True
-                    self.error_message = f'There is no second header line specifiying data in the body in file: {self.path}'
+                self.verify_start_of_header_for_body()
+                if self.invalid is True:
+                    self.error_message = f'There is no second header line specifiying data in the ' \
+                                         f'body in file: {self.path}'
 
         else:
             with open(self.path) as self.file:
@@ -89,15 +91,19 @@ class Input_file:
                     self.version = line_of_file
                 else:
                     self.invalid = True
-                    self.error_message = f'There is no first mandatory header line in file expressing version of file in file: {self.path}'
+                    self.error_message = f'There is no first mandatory header line in file expressing version ' \
+                                         f'of file in file: {self.path}'
+                    return
                 self.read_header_in_file()
-                return self.verify_start_of_header_for_body()
+                self.verify_start_of_header_for_body()
+                if self.invalid is True:
+                    self.error_message = f'There is no second header line specifiying data in the ' \
+                                         f'body in file: {self.path}'
 
     def read_header_in_file(self):
         """ Reads a header part of uncompressed file. """
         previous_position_of_file = self.file.tell()
         line_of_file = self.file.readline()
-
         while line_of_file.startswith('##'):
             self.process_header_line(line_of_file)
             previous_position_of_file = self.file.tell()
@@ -140,7 +146,8 @@ class Input_file:
                         self.file.seek(int(self.indices[chrom]))
                         for line in self.file:
                             if line.startswith(f'{chrom}\t'.encode('utf-8')):
-                                self.list_of_body_records_chrom.append(Body_record(str(line, 'utf-8'), self.body_header_line))
+                                self.list_of_body_records_chrom.append(
+                                    Body_record(str(line, 'utf-8'), self.body_header_line))
                             else:
                                 break
                     self.verify_body_records()
@@ -165,16 +172,14 @@ class Input_file:
         else:
             next_line = self.file.readline()
 
-        if next_line.startswith("#CHROM"):
+        if next_line.startswith(f'#CHROM'):
             self.body_header_line = Body_header_line(next_line)
-            if self.body_header_line.invalid:
+            if self.body_header_line.invalid is True:
                 self.invalid = True
                 self.error_message = self.body_header_line.error_message
-                return False
         else:
             self.invalid = True
             self.error_message = f'There is no second header line specifiying data in the body in file: {self.path}'
-            return False
 
     def verify_body_records(self):
         """ Verifies if all body records have different ref and alt field. If there is record that has same

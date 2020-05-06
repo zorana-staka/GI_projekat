@@ -1,6 +1,7 @@
 import gzip
 import re
 import toolz
+import os
 
 from Body_header_line import Body_header_line
 from Body_record import Body_record
@@ -37,6 +38,9 @@ class Output_file:
         for sample_name in self.arguments['--sample_name']:
             self.list_of_samples_to_be_combined.append(sample_name)
 
+        if self.arguments['--out']:
+            self.path = self.arguments['--out']
+
         for file_path in self.arguments['--input_file']:
             file_object = Input_file(file_path, self.list_of_samples_to_be_combined)
             self.indices.update(file_object.indices)
@@ -59,14 +63,27 @@ class Output_file:
             consideration validity of input files. """
         self.read_header_in_input_files()
         self.check_if_input_file_invalid()
-        if self.invalid is False:
+        if self.invalid is not True:
             self.process_headers()
             self.write_header_in_output_file()
+            self.check_samples_in_all_input_files()
+            if self.invalid is not True:
+                self.read_body_in_input_files_and_write()
+                if self.invalid is not True:
+                    self.check_if_input_file_invalid()
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
 
-            self.read_body_in_input_files_and_write()
-            self.check_if_input_file_invalid()
-
-        return not self.invalid
+        if self.invalid is True:
+            if os.path.isfile(self.path):
+                os.remove(self.path)
+            return False
+        else:
+            return True
 
     def read_header_in_input_files(self):
         """ Reads header parst of all input files and adds list of certain objects into the appropriate lists. """
@@ -105,17 +122,16 @@ class Output_file:
             self.adjust_body_records_to_samples()
             self.list_of_body_records_chrom = list(toolz.unique(self.list_of_body_records_chrom, key=lambda x: x.line))
             self.list_of_body_records_chrom.sort(key=lambda x: self.alphanum_key(x.line))
-            self.verify_and_merge_body_records()
-            self.write_specific_chrom_in_output_file()
+            if self.verify_and_merge_body_records():
+                self.write_specific_chrom_in_output_file()
 
     def check_if_input_file_invalid(self):
-        """ Checkes wheater the input files are all valid. If there is at least one invalid file the error message
+        """ Checks weather the input files are all valid. If there is at least one invalid file the error message
             is set according to the input file that is invalid. """
         error_files = [input_file for input_file in self.list_of_input_files if input_file.invalid is True]
         if len(error_files) > 0:
             self.error_message = error_files[0].error_message
             self.invalid = True
-        self.invalid = False
 
     def write_header_in_output_file(self):
         """ Writes header in compressed or uncompressed output file. """
@@ -201,9 +217,9 @@ class Output_file:
     def check_samples_in_all_input_files(self):
         for input_file in self.list_of_input_files:
             if not set(self.list_of_samples_to_be_combined).issubset(set(input_file.body_header_line.samples_names)):
-                return False
-
-        return True
+                self.invalid = True
+                self.error_message = f'The input file: {input_file.path} does not have all required samples: ' \
+                                     f'{str(self.list_of_samples_to_be_combined)}'
 
     def determinate_samples_to_be_combined(self):
         """ If no samples are given as an input argument, determinates which samples need to be combined
@@ -223,9 +239,11 @@ class Output_file:
 
                 if self.list_of_body_records_chrom[index].ref == self.list_of_body_records_chrom[index + 1].ref:
 
-                    if self.list_of_body_records_chrom[index].filter == self.list_of_body_records_chrom[index + 1].filter \
-                            or (self.list_of_body_records_chrom[index].filter == "PASS" or self.list_of_body_records_chrom[
-                        index + 1].filter == "PASS"):
+                    if self.list_of_body_records_chrom[index].filter == self.list_of_body_records_chrom[
+                        index + 1].filter \
+                            or (self.list_of_body_records_chrom[index].filter == "PASS"
+                                or self.list_of_body_records_chrom[index + 1].filter == "PASS"):
+
                         self.list_of_body_records_chrom[index].id = self.determinate_id(
                             self.list_of_body_records_chrom[index].id, self.list_of_body_records_chrom[index + 1].id)
 
@@ -233,7 +251,8 @@ class Output_file:
                             self.list_of_body_records_chrom[index].alt, self.list_of_body_records_chrom[index + 1].alt)
 
                         self.list_of_body_records_chrom[index].qual = self.determinate_qual(
-                            self.list_of_body_records_chrom[index].qual, self.list_of_body_records_chrom[index + 1].qual)
+                            self.list_of_body_records_chrom[index].qual,
+                            self.list_of_body_records_chrom[index + 1].qual)
 
                         self.determinate_info(self.list_of_body_records_chrom[index],
                                               self.list_of_body_records_chrom[index + 1])
@@ -243,14 +262,13 @@ class Output_file:
                         del self.list_of_body_records_chrom[index + 1]
 
                     else:
-                        return False
-
-                elif self.list_of_body_records_chrom[index].ref != self.list_of_body_records_chrom[index + 1].ref and \
-                        len(str(self.list_of_body_records_chrom[index].ref)) == \
-                        len(str(self.list_of_body_records_chrom[index + 1].ref)):
-                    return False
-
-            index += 1
+                        self.error_message = "The input files have incorrect records."
+                        self.invalid = True
+                        return
+                else:
+                    index += 1
+            else:
+                index += 1
 
         return True
 
