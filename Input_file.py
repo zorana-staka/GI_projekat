@@ -139,7 +139,7 @@ class Input_file:
                     with gzip.open(self.path) as self.file:
                         self.file.seek(int(self.indices[chrom]))
                         for line in self.file:
-                            if line.startswith(f'{chrom}\t'):
+                            if line.startswith(f'{chrom}\t'.encode('utf-8')):
                                 self.list_of_body_records_chrom.append(Body_record(str(line, 'utf-8'), self.body_header_line))
                             else:
                                 break
