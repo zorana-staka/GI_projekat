@@ -1,4 +1,4 @@
-# GI_projekat
+# Smart Combine Variants
 
 Python tool for smart combining of genomic variants
 
@@ -7,33 +7,20 @@ Usage: Smart_combine_variants.py (-i <inputVCF.vcf>)... [-s <sample_name>]... [-
 
 Options:
   -h --help
+  -i,--input_file <inputVCF.vcf>       Input vcf files
+  -s, --sample_name <sample_name>      Name of the sample(s) to be combined
+  -f,--output_format <output_format>   Output file format: COMPRESSED, UNCOMPRESSED or SAME_AS_INPUT (default)
+  -o,--out <out>                       Output file name
 
-  -i,--input_file <inputVCF.vcf>                                        Input vcf file
-
-  -s, --sample_name <sample_name>                                       Name of the sample(s) to be combined
-
-  -f,--output_format <output_format>                                    Output file format:
-                                                                        COMPRESSED, UNCOMPRESSED or SAME_AS_INPUT
-
-  -o,--out <out>                                                        Output file
-
-INPUT
-
-One or more VCF files
-
-OUTPUT
-
-A combined VCF files
-
-USAGE EXAMPLE
-
-- Smart_combine_variants.py -i v1.vcf.tz -i v2.vcf.gz -s NORMAL -f UNCOMPRESSED -o combined.vcf
-- Smart_combine_variants.py -i v1.vcf -i v2.vcf -s NORMAL -o combined.vcf
-- Smart_combine_variants.py -i v1.vcf.tz -i v2.vcf.gz -s NORMAL -f COMPRESSED -o combined.vcf
-- Smart_combine_variants.py -i v1.vcf.tz -i v2.vcf.gz -o combined.vcf
-- Smart_combine_variants.py -i v1.vcf.tz -i v2.vcf.gz -i v3.vcf -o combined.vcf
-- Smart_combine_variants.py -i v1.vcf -i v2.vcf.gz
-
+## Usage examples
+```
+Smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -s NORMAL -f UNCOMPRESSED -o combined.vcf
+Smart_combine_variants.py -i data/test/v1.vcf    -i data/test/v2.vcf -s NORMAL -o combined.vcf
+Smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -s NORMAL -f COMPRESSED -o combined.vcf
+Smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -o combined.vcf
+Smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -i v3.vcf -o combined.vcf
+Smart_combine_variants.py -i data/test/v1.vcf    -i data/test/v2.vcf.gz
+```
 In case there are none of the Sample names provided as an input, samples in all input files must be the same if present. 
 If the output format is not provided in input command the format will be the same format as the first input files. 
 If the output file is not provided in the input command, stdout will be used. 
