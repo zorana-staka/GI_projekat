@@ -12,6 +12,7 @@ class Body_header_line:
         self.samples_names = []
         self.invalid = None
         self.error_message = None
+        self.position = None
         if line != "":
             self.extract_sample_names()
             self.update_line()

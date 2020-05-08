@@ -4,7 +4,6 @@ import os
 
 from body_header_line import Body_header_line
 from body_record import Body_record
-from generate_idx_and_sort import generate_idx
 from generic_header import Generic_header
 
 
@@ -22,10 +21,11 @@ class Input_file:
         """
         self.path = path
         self.path_to_idx = ""
-        self.indices = {}
+        self.chromosomes_positions = {}
         self.file = None
         self.compressed = self.path.endswith('vcf.gz') or self.path.endswith('vcf.GZ')
         self.version = None
+        self.body_start_position = None
         self.body_header_line = None
         self.list_of_header_objects_without_ID = list()
         self.list_of_contigs = list()
@@ -35,36 +35,7 @@ class Input_file:
         self.convert = lambda text: int(text) if text.isdigit() else text
         self.alphanum_key = lambda key: [self.convert(c) for c in re.split('([0-9]+)', key)]
         self.invalid = False
-        self.check_indices()
         self.error_message = ""
-
-    def check_indices(self):
-        """ Checks to see if there is file that contains information about indices.
-            If such file doesn't exists it creates new onw according to the appropriate VCF or VCF.GZ file.
-        """
-        if self.compressed:
-            self.path_to_idx = f'{self.path}.scvtbi'
-        else:
-            self.path_to_idx = f'{self.path}.scvidx'
-
-        if os.path.isfile(self.path_to_idx):
-            self.extract_indices()
-        else:
-            generate_idx(self.path)
-            self.extract_indices()
-
-    def extract_indices(self):
-        """ Reads an appropriate file containing information about indices and stores that
-            information in dictionary indices. """
-        with open(self.path_to_idx) as idx_file:
-            list_of_lines = idx_file.readlines()
-
-        if len(list_of_lines) > 0:
-            if "Positions of Chroms:" in list_of_lines[0]:
-                list_of_lines = list_of_lines[1:]
-                for list_item in list_of_lines:
-                    attributes = list_item.rstrip(';\n').split(':')
-                    self.indices[attributes[0]] = attributes[1].replace(' ', '')
 
     def read_header_of_file(self):
         """ Opens and reads a file regarding type of the file (compressed or uncompressed). """
@@ -81,7 +52,7 @@ class Input_file:
                 self.read_header_in_gz_file()
                 self.verify_start_of_header_for_body()
                 if self.invalid is True:
-                    self.error_message = f'There is no second header line specifiying data in the ' \
+                    self.error_message = f'There is no second header line specifying data in the ' \
                                          f'body in file: {self.path}'
 
         else:
@@ -140,25 +111,27 @@ class Input_file:
         """
         self.list_of_body_records_chrom = []
         try:
-            if chrom in self.indices.keys():
+            if chrom in self.chromosomes_positions.keys():
                 if self.compressed:
                     with gzip.open(self.path) as self.file:
-                        self.file.seek(int(self.indices[chrom]))
-                        for line in self.file:
-                            if line.startswith(f'{chrom}\t'.encode('utf-8')):
-                                self.list_of_body_records_chrom.append(
-                                    Body_record(str(line, 'utf-8'), self.body_header_line))
-                            else:
-                                break
+                        for position in self.chromosomes_positions[chrom]:
+                            self.file.seek(int(position))
+                            for line in self.file:
+                                if line.startswith(f'{chrom}\t'.encode('utf-8')):
+                                    self.list_of_body_records_chrom.append(
+                                        Body_record(str(line, 'utf-8'), self.body_header_line))
+                                else:
+                                    break
                     self.verify_body_records()
                 else:
                     with open(self.path) as self.file:
-                        self.file.seek(int(self.indices[chrom]))
-                        for line in self.file:
-                            if line.startswith(f'{chrom}\t'):
-                                self.list_of_body_records_chrom.append(Body_record(line, self.body_header_line))
-                            else:
-                                break
+                        for position in self.chromosomes_positions[chrom]:
+                            self.file.seek(int(position))
+                            for line in self.file:
+                                if line.startswith(f'{chrom}\t'):
+                                    self.list_of_body_records_chrom.append(Body_record(line, self.body_header_line))
+                                else:
+                                    break
                     self.verify_body_records()
 
         finally:
@@ -174,12 +147,58 @@ class Input_file:
 
         if next_line.startswith(f'#CHROM'):
             self.body_header_line = Body_header_line(next_line)
+            self.body_start_position = self.file.tell()
+            print("body start position: " + str(self.body_start_position))
             if self.body_header_line.invalid is True:
                 self.invalid = True
                 self.error_message = self.body_header_line.error_message
         else:
             self.invalid = True
-            self.error_message = f'There is no second header line specifiying data in the body in file: {self.path}'
+            self.error_message = f'There is no second header line specifying data in the body in file: {self.path}'
+
+    def extract_indices_for_chromosomes(self):
+        if self.compressed:
+            with gzip.open(self.path) as self.file:
+                self.file.seek(self.body_start_position)
+                line_of_file = str(self.file.readline(), 'utf-8')
+
+                current_chrom = (line_of_file.split('\t'))[0]
+                if current_chrom not in self.chromosomes_positions.keys():
+                    self.chromosomes_positions[current_chrom] = list()
+                self.chromosomes_positions[current_chrom].append(self.body_start_position)
+
+                while line_of_file != '':
+                    if line_of_file.startswith(f'{current_chrom}\t'):
+                        pass
+                    else:
+                        current_chrom = (line_of_file.split('\t'))[0]
+                        if current_chrom not in self.chromosomes_positions.keys():
+                            self.chromosomes_positions[current_chrom] = list()
+                        self.chromosomes_positions[current_chrom].append(previous_position_of_file)
+                    previous_position_of_file = self.file.tell()
+                    line_of_file = str(self.file.readline(), 'utf-8')
+        else:
+            with open(self.path) as self.file:
+                self.file.seek(self.body_start_position)
+                line_of_file = self.file.readline()
+
+                current_chrom = (line_of_file.split('\t'))[0]
+                if current_chrom not in self.chromosomes_positions.keys():
+                    self.chromosomes_positions[current_chrom] = list()
+                self.chromosomes_positions[current_chrom].append(self.body_start_position)
+
+                while line_of_file != '':
+                    if line_of_file.startswith(f'{current_chrom}\t'):
+                        pass
+                    else:
+                        current_chrom = (line_of_file.split('\t'))[0]
+                        if current_chrom not in self.chromosomes_positions.keys():
+                            self.chromosomes_positions[current_chrom] = list()
+                        self.chromosomes_positions[current_chrom].append(previous_position_of_file)
+                    previous_position_of_file = self.file.tell()
+                    line_of_file = self.file.readline()
+
+
 
     def verify_body_records(self):
         """ Verifies if all body records have different ref and alt field. If there is record that has same

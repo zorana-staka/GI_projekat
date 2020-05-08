@@ -7,13 +7,22 @@ This tools performs combining of two or more vcf files into one according to the
 Copyright (c) ETF Beograd
 
 Usage: 
-    smart_combine_variants.py (-i <inputVCF.vcf>)... [-s <sample_name>]... [-f <output_format>] [-o <out>]
+    smart_combine_variants.py (-i <inputVCF.vcf>)... [-s <sample_name>]... [-f <output_format>] [-o <out>] [options]
+
 Options:
+
     -h --help
+
     -i,--input_file <inputVCF.vcf>       Input vcf file
-    -s, --sample_name <sample_name>      Name of the sample(s) to be combined
+
+    -s,--sample_name <sample_name>      Name of the sample(s) to be combined
+
     -f,--output_format <output_format>   Output file format: COMPRESSED, UNCOMPRESSED or SAME_AS_INPUT [default: SAME_AS_INPUT]
+
     -o,--out <out>                       Output file
+
+    -v,--verbose                        Printing test data to stderr [default: False]
+
 Example:
 smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -s NORMAL -f UNCOMPRESSED -o combined.vcf
 smart_combine_variants.py -i data/test/v1.vcf    -i data/test/v2.vcf -s NORMAL -o combined.vcf
@@ -37,9 +46,8 @@ if __name__ == '__main__':
 
     output_file = Output_file(arguments)
 
-    if output_file.invalid is True:
-        print(output_file.error_message)
-    elif output_file.process_input_files() is False:
+    if output_file.process_input_files() is False:
         print(output_file.error_message)
 
-    print("--- %s seconds ---" % (time.time() - start_time), file=stderr)
+    if arguments['--verbose']:
+        print("--- %s seconds ---" % (time.time() - start_time), file=stderr)

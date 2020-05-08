@@ -16,7 +16,7 @@ class Output_file:
         self.file = None
         self.compressed = None
         self.version = None
-        self.indices = {}
+        self.chromosomes_position = {}
         self.body_header_line = None
         self.list_of_header_objects = list()
         self.list_of_header_objects_without_ID = list()
@@ -39,18 +39,12 @@ class Output_file:
             self.list_of_samples_to_be_combined.append(sample_name)
 
         if self.arguments['--out']:
-            self.path = (self.arguments['--out'])[0]
+            self.path = self.arguments['--out']
 
         for file_path in self.arguments['--input_file']:
-            if os.path.isfile(file_path):
-                file_object = Input_file(file_path, self.list_of_samples_to_be_combined)
-                self.indices.update(file_object.indices)
-                self.list_of_input_files.append(file_object)
-                self.list_of_input_files_paths.append(file_path)
-            else:
-                self.error_message = f'Fajl {file_path} ne postoji.'
-                self.invalid = True
-                return
+            input_file = Input_file(file_path, self.list_of_samples_to_be_combined)
+            self.list_of_input_files.append(input_file)
+            self.list_of_input_files_paths.append(file_path)
 
         if self.arguments['--out']:
             if self.arguments['--output_format'] == 'COMPRESSED':
@@ -71,6 +65,7 @@ class Output_file:
         if self.invalid is not True:
             self.process_headers()
             self.write_header_in_output_file()
+            self.extract_chromosomes()
             self.check_samples_in_all_input_files()
             if self.invalid is not True:
                 self.read_body_in_input_files_and_write()
@@ -99,6 +94,11 @@ class Output_file:
             self.list_of_contigs.extend(input_file.list_of_contigs)
         self.version = self.list_of_input_files[0].version
 
+    def extract_chromosomes(self):
+        for input_file in self.list_of_input_files:
+            input_file.extract_indices_for_chromosomes()
+            self.chromosomes_position.update(input_file.chromosomes_positions)
+
     def process_headers(self):
         """ Delete duplicates and sort all lists regarding header. Creates body header line according to the
         samples. """
@@ -113,11 +113,11 @@ class Output_file:
         self.create_body_header_line_for_output()
 
     def read_body_in_input_files_and_write(self):
-        """  Forms list of chromosomes that need to be read from input files, then reads one by one
+        """  Forms list of chromosomes_position that need to be read from input files, then reads one by one
             chromosome from all input files. After reading one chromosome in file list containing information is
             updated. This list is then filtered to remove duplicates and sorted. Then the body records for specific
             chromosome are written in the output file. """
-        list_of_chrom = list(self.indices.keys())
+        list_of_chrom = list(self.chromosomes_position.keys())
         list_of_chrom.sort(key=lambda x: self.alphanum_key(x))
         for chrom in list_of_chrom:
             self.list_of_body_records_chrom.clear()
@@ -155,8 +155,8 @@ class Output_file:
 
     def write_header(self):
         """ Writes header in uncompressed file, or on the stdout, regarding input arguments. """
-        if self.path:
-            self.file = open(self.path, "w+")
+        if self.arguments['--out']:
+            self.file = open((self.arguments['--out'])[0], "w+")
             self.file.write(self.version)
             for list_item in self.list_of_header_objects:
                 self.file.write(list_item.line)
@@ -169,8 +169,8 @@ class Output_file:
 
     def write_body(self):
         """ Writes body in uncompressed file, or on the stdout, regarding input arguments. """
-        if self.path:
-            self.file = open(self.path, "a+")
+        if self.arguments['--out']:
+            self.file = open((self.arguments['--out'])[0], "a+")
             for list_item in self.list_of_body_records_chrom:
                 self.file.write(list_item.line)
             self.file.close()
