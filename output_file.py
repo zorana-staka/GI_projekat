@@ -99,6 +99,8 @@ class Output_file:
             input_file.extract_indices_for_chromosomes()
             self.chromosomes_position.update(input_file.chromosomes_positions)
 
+
+
     def process_headers(self):
         """ Delete duplicates and sort all lists regarding header. Creates body header line according to the
         samples. """
@@ -155,8 +157,8 @@ class Output_file:
 
     def write_header(self):
         """ Writes header in uncompressed file, or on the stdout, regarding input arguments. """
-        if self.arguments['--out']:
-            self.file = open((self.arguments['--out'])[0], "w+")
+        if self.path:
+            self.file = open(self.path, "w+")
             self.file.write(self.version)
             for list_item in self.list_of_header_objects:
                 self.file.write(list_item.line)
@@ -169,8 +171,8 @@ class Output_file:
 
     def write_body(self):
         """ Writes body in uncompressed file, or on the stdout, regarding input arguments. """
-        if self.arguments['--out']:
-            self.file = open((self.arguments['--out'])[0], "a+")
+        if self.path:
+            self.file = open(self.path, "a+")
             for list_item in self.list_of_body_records_chrom:
                 self.file.write(list_item.line)
             self.file.close()

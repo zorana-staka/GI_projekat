@@ -15,7 +15,10 @@ Options:
 
     -i,--input_file <inputVCF.vcf>       Input vcf file
 
-    -s,--sample_name <sample_name>      Name of the sample(s) to be combined
+    -s,--sample_name <sample_name>      Name of the sample(s) to be combined. If no sample names have not been provided
+                                        all input files have to have matching sample names (order is not important).
+                                        If the sample name is provided it must be in all input files. Otherwise, the
+                                        error will occur.
 
     -f,--output_format <output_format>   Output file format: COMPRESSED, UNCOMPRESSED or SAME_AS_INPUT [default: SAME_AS_INPUT]
 

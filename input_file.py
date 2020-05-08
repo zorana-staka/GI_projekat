@@ -148,7 +148,6 @@ class Input_file:
         if next_line.startswith(f'#CHROM'):
             self.body_header_line = Body_header_line(next_line)
             self.body_start_position = self.file.tell()
-            print("body start position: " + str(self.body_start_position))
             if self.body_header_line.invalid is True:
                 self.invalid = True
                 self.error_message = self.body_header_line.error_message
@@ -197,8 +196,6 @@ class Input_file:
                         self.chromosomes_positions[current_chrom].append(previous_position_of_file)
                     previous_position_of_file = self.file.tell()
                     line_of_file = self.file.readline()
-
-
 
     def verify_body_records(self):
         """ Verifies if all body records have different ref and alt field. If there is record that has same
