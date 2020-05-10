@@ -27,12 +27,12 @@ Options:
     -v,--verbose                        Printing test data to stderr [default: False]
 
 Example:
-smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -s NORMAL -f UNCOMPRESSED -o combined.vcf
+smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -s NORMAL -f UNCOMPRESSED -o combined.vcf -v
 smart_combine_variants.py -i data/test/v1.vcf    -i data/test/v2.vcf -s NORMAL -o combined.vcf
-smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -s NORMAL -f COMPRESSED -o combined.vcf
-smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -o combined.vcf
+smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -s NORMAL -s TUMOR -f COMPRESSED -o combined.vcf
+smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -o combined.vcf -v
 smart_combine_variants.py -i data/test/v1.vcf.gz -i data/test/v2.vcf.gz -i v3.vcf -o combined.vcf
-smart_combine_variants.py -i data/test/v1.vcf    -i data/test/v2.vcf.gz
+smart_combine_variants.py -i data/test/v1.vcf    -i data/test/v2.vcf.gz -v
 
 """
 
@@ -48,9 +48,13 @@ if __name__ == '__main__':
     arguments = docopt(__doc__)
 
     output_file = Output_file(arguments)
+    if output_file.invalid is True:
+        print(output_file.error_message)
 
-    if output_file.process_input_files() is False:
+    elif output_file.process_input_files() is False:
         print(output_file.error_message)
 
     if arguments['--verbose']:
         print("--- %s seconds ---" % (time.time() - start_time), file=stderr)
+
+    stderr.close()
