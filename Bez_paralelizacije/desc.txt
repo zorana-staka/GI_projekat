@@ -1,0 +1,1 @@
+Ova verzija radi bez paralelizacije, i pokazalo se da je čak bolja od onih koje imaju paralelizaciju. 
