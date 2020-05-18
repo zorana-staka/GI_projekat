@@ -1,12 +1,12 @@
 class Body_header_line:
-    """ Represents a header line for body that starts with a single #.
+    """ Represents a header line for the body that starts with a single #.
         The first eight fields CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO are mandatory.
-        Besides there fields there can be a FORMAT and samples fields.
+        Besides these fields, there can be a FORMAT and sample fields.
     """
     list_of_samples_to_be_combined = []
 
     def __init__(self, line):
-        """ Create and initialize a new body header line """
+        """ Create and initialize a new body header line. """
         self.line = line
         self.has_format_field = False
         self.samples_names = []

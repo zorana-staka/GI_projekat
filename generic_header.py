@@ -1,7 +1,6 @@
 class Generic_header:
-    """ Represents line in header of VCF file.
-        Contains all relevant information about line and methods for manipulation.
-    """
+    """ Represents line in the header of the VCF file.
+        Contains all relevant information about line and methods for manipulation. """
     def __init__(self, line):
         self.line = line
         self.tag = ""
@@ -11,9 +10,8 @@ class Generic_header:
         self.extract_line_data()
 
     def extract_line_data(self):
-        """ If possible divides line into two parts at the place of = (equal sign).
-            Sets ID and tag name.
-        """
+        """ If possible divides the line into two parts at the place of = (equal sign).
+            Sets ID and tag name. """
         try:
             line_parse = self.line.split('=', 1)
             self.tag = (line_parse[0])[2:]
@@ -31,7 +29,7 @@ class Generic_header:
             pass
 
     def __eq__(self, other):
-        """ Overridden equal operator. Compering is done by line attribute.
+        """ Overridden equal operator. Comparing is done by line attribute.
             :param other: other Generic_header to be compared with.
         """
         return self.line == other.line

@@ -1,14 +1,11 @@
 class Body_record:
-    """
-        Class representing line in body part of VCF file.
-    """
+    """ Class representing a line in the body part of the VCF file. """
     list_of_samples_to_be_combined = []
 
     def __init__(self, line, body_header_line):
         """ Create and initialize a new Body_record.
-
-        :param line:  line in body part of VCF file. Mold for this class.
-        :param body_header_line: Header line in corresponding VCF file.
+        :param line:  line in the body part of the VCF file. Mold for this class.
+        :param body_header_line: Header line in the corresponding VCF file.
         """
         self.line = line
         if '\n' not in line:
@@ -31,14 +28,9 @@ class Body_record:
         self.extract_data_from_line()
         self.extract_data_from_info()
 
-    def set_samples_to_be_combined(self, list_of_samples_to_be_combined):
-        """ Sets the value of list_of_samples_to_be_combined """
-        self.list_of_samples_to_be_combined = list_of_samples_to_be_combined
-
     def update_line(self):
-        """ Updates line attribute if there is any changes in the fields of line.
-            This line attribute will be written in the output file, so it has to be well formatted and up to date.
-        """
+        """ Updates line attributes if there are any changes in the fields of the line.
+            This line attribute will be written in the output file, so it has to be well-formatted and up to date. """
         self.line = self.chrom + '\t' + str(
             self.pos) + '\t' + self.id + '\t' + self.ref + '\t' + self.alt + '\t' + self.qual + '\t' + str(self.filter) + '\t' + str(self.info)
 
@@ -77,7 +69,7 @@ class Body_record:
 
     def extract_data_from_info(self):
         """ Separate info data, based on the = (equal sign).
-            Separated data is sorted. Update the info field ans line because changes occured.
+            Separated data is sorted. Update the info field and line because changes occurred.
         """
         attributes = self.info.split(';')
         for item in attributes:
@@ -101,7 +93,7 @@ class Body_record:
         self.update_info_field()
 
     def update_info_field(self):
-        """ Updates info field according to the specific information in attribute
+        """ Updates info field according to the specific information in the attribute
             data_from_info and rules for formatting info field in VCF files."""
         self.info = ''
         for key, value in self.data_from_info.items():
@@ -115,7 +107,7 @@ class Body_record:
         self.update_line()
 
     def __eq__(self, other):
-        """ Overridden equal operator. Compering is done by line attribute.
+        """ Overridden equal operator. Comparing is done by line attribute.
             :param other: other Generic_header to be compared with.
         """
         return self.line == other.line

@@ -1,8 +1,7 @@
-import gzip
 import os
 import re
 import toolz
-from os import path
+import bgzip
 
 from body_header_line import Body_header_line
 from body_record import Body_record
@@ -73,7 +72,6 @@ class Output_file:
             else:
                 if self.path.endswith(".gz") or self.path.endswith(".GZ"):
                     self.path = self.path[:-3]
-            print("self.path: " + self.path)
 
     def process_input_files(self):
         """ Processes input files, first it reads the header, then body part, taking into
@@ -194,12 +192,12 @@ class Output_file:
     def write_header_in_gz_file(self):
         """ Writes header in the compressed file, or on the stdout, regarding input arguments. """
         if self.path:
-            self.file = gzip.open(self.path + '.gz', "w+b")
-            self.file.write(self.version.encode('utf-8'))
-            for list_item in self.list_of_header_objects:
-                self.file.write(list_item.line.encode('utf-8'))
-            self.file.write(self.body_header_line.line.encode('utf-8'))
-            self.file.close()
+            with open(self.path, "w+b") as raw:
+                with bgzip.BGZipWriter(raw) as self.file:
+                    self.file.write(self.version.encode('utf-8'))
+                    for list_item in self.list_of_header_objects:
+                        self.file.write(list_item.line.encode('utf-8'))
+                    self.file.write(self.body_header_line.line.encode('utf-8'))
         else:
             for list_item in self.list_of_header_objects:
                 print(list_item.line.encode('utf-8'))
@@ -207,15 +205,13 @@ class Output_file:
     def write_body_in_gz_file(self):
         """ Writes body in the compressed file, or on the stdout, regarding input arguments. """
         if self.path:
-            self.file = gzip.open(self.path + '.gz', "a+b")
-            for list_item in self.list_of_body_records_chrom:
-                self.file.write(list_item.line.encode('utf-8'))
-            self.file.close()
+            with open(self.path, "a+b") as raw:
+                with bgzip.BGZipWriter(raw) as self.file:
+                    for list_item in self.list_of_body_records_chrom:
+                        self.file.write(list_item.line.encode('utf-8'))
         else:
             for list_item in self.list_of_body_records_chrom:
                 print(list_item.line.encode('utf-8'))
-
-        self.file.close()
 
     def adjust_body_records_to_samples(self):
         """ First make a list of samples that need to be combined if the list_of_samples_to_be_combined is empty.
