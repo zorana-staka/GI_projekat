@@ -1,8 +1,10 @@
 import os
 import re
 import toolz
-import bgzip
 
+#import bgzip
+
+from concurrent.futures import ThreadPoolExecutor
 from body_header_line import Body_header_line
 from body_record import Body_record
 from input_file import Input_file
@@ -129,17 +131,21 @@ class Output_file:
             chromosomes are written in the output file. """
         list_of_chrom = list(self.chromosomes_position.keys())
         list_of_chrom.sort(key=lambda x: self.alphanum_key(x))
-        for chrom in list_of_chrom:
-            self.list_of_body_records_chrom.clear()
-            for input_file in self.list_of_input_files:
-                input_file.read_specific_chrom_body_of_file(chrom)
-                self.list_of_body_records_chrom.extend(input_file.list_of_body_records_chrom)
 
+        for chrom in list_of_chrom:
+            self.list_of_body_records_chrom.clear() 
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                [executor.submit(self.multithread_test,input_file,chrom) for input_file in self.list_of_input_files]
+                
             self.adjust_body_records_to_samples()
             self.list_of_body_records_chrom = list(toolz.unique(self.list_of_body_records_chrom, key=lambda x: x.line))
             self.list_of_body_records_chrom.sort(key=lambda x: self.alphanum_key(x.line))
             if self.verify_and_merge_body_records():
                 self.write_specific_chrom_in_output_file()
+
+    def multithread_test(self, input_file, chrom):
+        input_file.read_specific_chrom_body_of_file(chrom)
+        self.list_of_body_records_chrom.extend(input_file.list_of_body_records_chrom)
 
     def check_if_input_file_invalid(self):
         """ Checks whether the input files are all valid. If there is at least one invalid file the error message is
