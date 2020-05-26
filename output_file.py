@@ -268,33 +268,23 @@ class Output_file:
                                                          self.list_of_body_records_chrom[index + 1])):
 
                 if self.list_of_body_records_chrom[index].ref == self.list_of_body_records_chrom[index + 1].ref:
+                    self.list_of_body_records_chrom[index].id = self.determinate_id(
+                        self.list_of_body_records_chrom[index].id, self.list_of_body_records_chrom[index + 1].id)
 
-                    if self.list_of_body_records_chrom[index].filter == self.list_of_body_records_chrom[
-                        index + 1].filter \
-                            or (self.list_of_body_records_chrom[index].filter == "PASS"
-                                or self.list_of_body_records_chrom[index + 1].filter == "PASS"):
+                    self.list_of_body_records_chrom[index].alt = self.determinate_alt(
+                        self.list_of_body_records_chrom[index].alt, self.list_of_body_records_chrom[index + 1].alt)
 
-                        self.list_of_body_records_chrom[index].id = self.determinate_id(
-                            self.list_of_body_records_chrom[index].id, self.list_of_body_records_chrom[index + 1].id)
+                    self.list_of_body_records_chrom[index].qual = self.determinate_qual(
+                        self.list_of_body_records_chrom[index].qual,
+                        self.list_of_body_records_chrom[index + 1].qual)
 
-                        self.list_of_body_records_chrom[index].alt = self.determinate_alt(
-                            self.list_of_body_records_chrom[index].alt, self.list_of_body_records_chrom[index + 1].alt)
+                    self.determinate_info(self.list_of_body_records_chrom[index],
+                                          self.list_of_body_records_chrom[index + 1])
 
-                        self.list_of_body_records_chrom[index].qual = self.determinate_qual(
-                            self.list_of_body_records_chrom[index].qual,
-                            self.list_of_body_records_chrom[index + 1].qual)
+                    self.list_of_body_records_chrom[index].update_line()
 
-                        self.determinate_info(self.list_of_body_records_chrom[index],
-                                              self.list_of_body_records_chrom[index + 1])
+                    del self.list_of_body_records_chrom[index + 1]
 
-                        self.list_of_body_records_chrom[index].update_line()
-
-                        del self.list_of_body_records_chrom[index + 1]
-
-                    else:
-                        self.error_message = "The input files have incorrect records."
-                        self.invalid = True
-                        return
                 else:
                     index += 1
             else:
